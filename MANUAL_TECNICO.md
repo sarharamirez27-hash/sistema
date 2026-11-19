@@ -1,203 +1,196 @@
-# KORA — Manual técnico
+# KORA · Manual técnico
 
-**Versión del producto documentada:** 0.5.0  
-**Artefacto:** distribución compilada de Electron para Windows  
-**Destinatarios:** desarrollo, soporte y mantenimiento
+**Aplicación:** KORA · Trippy Animations 1.0.0  
+**Proyecto fuente:** `trippy-animations-nuevo`  
+**Destinatarios:** desarrollo, despliegue y mantenimiento
 
-## 1. Alcance de este análisis
+> La documentación describe el código fuente actual de `trippy-animations-nuevo`, incluida su distribución Electron portátil. Esta aplicación es independiente de la distribución KORA compilada anterior, que utiliza otro frontend y almacenamiento IndexedDB. No existe migración automática entre ambos formatos.
 
-La carpeta recibida es un paquete ejecutable, no el repositorio de desarrollo. Se inspeccionaron `resources\app\main.cjs`, `package.json`, los recursos web compilados y `LEEME.txt`. No se encontraron fuentes originales, mapas de origen, configuración de construcción, pruebas, dependencias declaradas ni esquema de base de datos externo.
+## 1. Descripción general
 
-En consecuencia, este documento describe lo que se puede verificar en el paquete. No atribuye versiones exactas a las bibliotecas web incluidas en el bundle si el manifiesto no las declara, ni presenta un procedimiento de compilación que no está disponible.
+KORA es una aplicación de estudio local con frontend en JavaScript, CSS y HTML; un servidor HTTP escrito con módulos estándar de Node.js; y una ventana Electron opcional. El servidor expone archivos estáticos y una API autenticada. El estado de dominio se guarda como JSON por usuario. El renderer guarda por separado las preferencias visuales en `localStorage`.
 
-## 2. Descripción y arquitectura
+No hay una base de datos SQL, framework web de servidor ni servicio remoto requerido. El código de programación almacenado es material de estudio y no se ejecuta en KORA.
 
-KORA es una aplicación local de estudio basada en Electron. El proceso principal crea una ventana, registra el protocolo interno `kora://app/` y sirve archivos estáticos desde `resources\app\web`. La interfaz compilada mantiene el estado de la aplicación en IndexedDB; las preferencias visuales se guardan separadamente en `localStorage`. No se encontró un servidor de aplicación ni una API remota.
+## 2. Arquitectura
 
 ```mermaid
 flowchart LR
-    U[Usuario] --> W[Ventana Electron]
-    M[main.cjs] -->|crea y carga| W
-    W -->|kora://app/| P[Protocolo interno]
-    P -->|archivos estáticos| H[index.html y bundle web]
-    H --> R[Interfaz React]
-    R -->|CRUD local| D[(IndexedDB: kora)]
-    R -->|preferencias| L[(localStorage)]
-    R <-->|aviso de cambios| B[BroadcastChannel]
-    R -->|exportar/importar| J[Archivos JSON / Markdown]
-    W -->|enlaces HTTP(S)| X[Navegador externo]
+    U[Usuario] --> E[Ventana Electron]
+    M[main.cjs] -->|inicia| S[Servidor local Node]
+    E -->|HTTP en loopback| UI[index.html + app.js + styles.css]
+    UI -->|fetch same-origin| API[API de server.mjs]
+    API --> AUTH[Sesiones y validación]
+    AUTH --> FS[(Archivos JSON por cuenta)]
+    UI --> PREF[(localStorage: preferencias)]
+    S -->|recursos estáticos| UI
 ```
 
-El dibujo representa los componentes observados en el paquete. No implica sincronización remota ni almacenamiento compartido entre equipos.
+### Ejecución en Electron
 
-## 3. Tecnologías y herramientas comprobables
+`main.cjs` importa `createAppServer`, crea una clave temporal para la configuración inicial, fija `%APPDATA%\KORA-Trippy-Animations` como directorio de datos de Electron e inicia el servidor en un puerto dinámico de `127.0.0.1`. Si todavía no hay cuenta, agrega la clave temporal a la URL inicial. Después crea una `BrowserWindow` que carga la interfaz servida localmente.
 
-| Tecnología o recurso | Evidencia y función |
+La ventana usa `contextIsolation: true`, `nodeIntegration: false` y `sandbox: true`. Los enlaces externos HTTP/HTTPS se abren en el navegador del sistema; la ventana bloquea la navegación a otros orígenes.
+
+### Ejecución con Node
+
+`npm start` carga `.env` con `--env-file-if-exists`, crea las credenciales desde el entorno y escucha por defecto en `127.0.0.1:4173`. Esta ruta sirve la misma interfaz a un navegador y persiste datos en `TRIPPY_DATA_DIR`.
+
+## 3. Tecnologías y herramientas
+
+| Tecnología | Uso en el proyecto |
 |---|---|
-| JavaScript / CommonJS | `main.cjs` usa `require`, `node:path` y `node:url`. |
-| Electron | `BrowserWindow`, `app`, `protocol`, `net`, `shell` y el ejecutable de escritorio. El archivo `version` del paquete contiene `45.3.1`; `package.json` no expone una matriz de compatibilidad. |
-| React | El bundle web monta la interfaz en `#root` y contiene renderizado React. |
-| IndexedDB | Persistencia de los registros de dominio bajo el nombre de base `kora`. |
-| `localStorage` | Persistencia del estado de preferencias bajo la clave `kora:prefs`; la preferencia de vista de apuntes usa `kora-premium-notes-view`. |
-| `BroadcastChannel` | Canal `kora-sync` para avisar a otras ventanas de cambios y recargar desde el almacenamiento. |
-| Markdown | Los apuntes y varios campos de contenido admiten Markdown; la exportación legible genera un archivo `.md`. |
-| PWA | Hay manifiesto y service worker en `web`. El código del bundle registra el worker solo en HTTPS o localhost; el protocolo Electron utilizado es `kora://`. |
-| CSS y fuentes | Hojas CSS compiladas y fuentes Atkinson Hyperlegible y Fraunces dentro de `web\assets`. |
+| JavaScript ES Modules | Frontend (`public\app.js`), servidor (`server.mjs`) y validador (`state-validation.mjs`). |
+| Node.js >=22.11 | Servidor HTTP, APIs de sistema de archivos, criptografía y scripts npm. |
+| Electron | Proceso principal CommonJS en `main.cjs` y ventana de escritorio. El script reutiliza el runtime entregado junto al proyecto; el paquete fuente no declara un paquete npm de Electron. |
+| HTML y CSS | Estructura, presentación adaptable, temas y editor de código. |
+| JSON | Persistencia local del estado por cuenta y formato de copia de seguridad. |
+| PowerShell | Construcción de la carpeta portátil con `scripts\build-portable.ps1`. |
+| Node Test Runner | Pruebas integradas mediante `node --test`, sin framework de pruebas externo. |
 
-No se puede determinar de manera fiable, a partir de los metadatos entregados, el gestor de paquetes, las versiones de React u otras dependencias del bundle, ni la herramienta que generó los archivos compilados. Las clases CSS parecen compiladas, pero no se incluyen configuración ni dependencias para afirmar una herramienta de CSS específica.
+No se declara React, Express, ORM ni dependencia npm de terceros en `package.json`.
 
-## 4. Estructura de la distribución
+## 4. Estructura del proyecto
 
 ```text
-raíz/
-├── kora.exe
-├── LEEME.txt
-├── version
-├── *.dll, *.pak y archivos de runtime
-├── locales/
-└── resources/
-    ├── app.asar.original
-    └── app/
-        ├── main.cjs
-        ├── package.json
-        ├── icon.png
-        └── web/
-            ├── index.html
-            ├── manifest.webmanifest
-            ├── sw.js
-            ├── assets/
-            └── icons/
+trippy-animations-nuevo/
+├── .env.example                 # Configuración de referencia
+├── .gitignore                   # Excluye .env, data, node_modules
+├── LEEME.txt                    # Primer uso de la distribución
+├── README.md                    # Desarrollo, configuración y construcción
+├── main.cjs                     # Proceso principal Electron
+├── package.json                 # Metadatos, scripts y mínimo de Node
+├── server.mjs                   # Servidor HTTP, API, autenticación y JSON
+├── state-validation.mjs         # Esquema, normalización y límites del estado
+├── public/
+│   ├── index.html               # Entrada del frontend
+│   ├── app.js                   # Estado, navegación, formularios y acciones
+│   ├── styles.css               # Estilos adaptables y temas
+│   └── fonts/                   # Atkinson y Fraunces incluidos
+├── scripts/
+│   └── build-portable.ps1       # Ensamble de la distribución Electron
+└── tests/
+    └── server.test.mjs          # Pruebas de API, acceso y persistencia
 ```
 
-`resources\app.asar.original` se describe en `LEEME.txt` como una copia del paquete original. El código de entrada activo observado está en `resources\app\main.cjs`. La interfaz de `web\assets` está compilada y minificada, por lo que las rutas internas y nombres de componentes fuente no son recuperables de forma fiable.
+`release\` se crea al construir. `data\` se crea al usar el servidor de desarrollo si se conserva el valor predeterminado; está excluida de Git.
 
-## 5. Proceso principal y límites de navegación
+## 5. Módulos del frontend
 
-`main.cjs`:
+`public\app.js` mantiene el estado de la sesión, los datos cargados, la vista activa y las preferencias. El renderizado se realiza mediante funciones que escriben el HTML en `#app`; los formularios y cuadros de diálogo se montan en `#modal-root`. Los eventos principales usan delegación en el documento, `#app` y `#modal-root`.
 
-1. Importa APIs de Electron y utilidades de ruta/URL de Node.
-2. Registra `kora` como esquema estándar, seguro y compatible con Fetch.
-3. Define `webRoot` como `resources\app\web`.
-4. Crea una ventana inicial de 1280 × 820, con tamaño mínimo de 360 × 600.
-5. Desactiva el menú de aplicación y carga `kora://app/index.html`.
-6. Atiende el protocolo personalizado resolviendo el archivo solicitado bajo `webRoot`, con una comprobación para rechazar rutas fuera de la raíz.
-7. Impide que la ventana navegue fuera de `kora://app/`. Los enlaces externos HTTP/HTTPS se entregan al navegador externo.
-8. Cierra la aplicación al cerrar todas las ventanas, salvo en macOS, y crea una nueva al reactivar la aplicación en esa plataforma.
+| Módulo | Función técnica |
+|---|---|
+| Resumen | Conteos de cuadernos/apuntes, estados y elementos recientes. |
+| Cuadernos y apuntes | CRUD, filtros por nombre o contenido, estados y etiquetas. `notes.notebookId` referencia un cuaderno. |
+| Buscador | Búsqueda por términos en cinco colecciones, sugerencias, clasificación por tipo y resaltado escapado de coincidencias. |
+| Código | Editor de texto superpuesto a una capa de resaltado; gestiona lenguajes, línea actual, indentación, búsqueda, portapapeles, descarga y versiones. |
+| Errores | CRUD de registros pendientes/solucionados y vínculo opcional al código de origen. |
+| Estudio | Tarjetas, filtro por tema, valoraciones, cuestionarios y resultados recientes. |
+| Papelera | Eliminación lógica de apuntes, códigos, errores y cuadernos; restauración o confirmación de borrado permanente. |
+| Progreso | Gráficos SVG/CSS derivados de estados y cantidades de apuntes. |
+| Accesibilidad | Tema, filtros visuales, contraste, seis escalas de texto y otras preferencias. |
+| Mis datos | Exportación e importación de copias JSON. |
 
-Las preferencias de la ventana configuran `contextIsolation: true`, `nodeIntegration: false` y `sandbox: true`. El paquete no implementa una interfaz de IPC propia en el archivo principal revisado.
+El resaltado de sintaxis es un tokenizer local basado en expresiones regulares, no un parser completo ni un servicio de lenguaje. En el editor de código, `textarea.code-input` se superpone a `pre.code-highlight`; el texto transparente permite que se vea el resaltado subyacente, mientras el caret y la selección siguen disponibles.
 
-## 6. Módulos funcionales
+## 6. API y flujo de solicitudes
 
-La interfaz contiene los siguientes dominios:
+La función `api()` del frontend envía solicitudes same-origin e interpreta errores JSON. Las rutas implementadas son:
 
-- **Cuadernos y apuntes:** agrupación de apuntes, categorías, estados de estudio, archivo de cuadernos y vistas de lista/cuadrícula.
-- **Código:** fragmentos con título, lenguaje, código, explicación y ejemplo; la interfaz incluye copia al portapapeles.
-- **Glosario:** términos, definiciones y ejemplos; la creación evita términos duplicados tras normalización.
-- **Errores y soluciones:** registro de errores, estado resuelto/pendiente y referencias opcionales a apuntes.
-- **Tarjetas:** pares de pregunta/respuesta, cola de repasos y progreso de repetición espaciada.
-- **Cuestionarios:** preguntas de opción múltiple, verdadero/falso y respuesta corta; registra intentos y resultados.
-- **Progreso:** indicadores sobre estudio, actividad, módulos y resultados.
-- **Papelera:** acciones de eliminación y elementos eliminados.
-- **Mis datos:** exportación JSON, importación de copias, exportación Markdown y eliminación total de datos.
-- **Preferencias:** tema, modo calmo, intensidad de animaciones, fondo y estado visual del menú.
+| Método y ruta | Autenticación | Propósito |
+|---|---|---|
+| `GET /api/status` | No | Indica si se debe realizar la configuración inicial. |
+| `POST /api/setup` | Clave temporal en Electron | Configura la única cuenta `sarharf`, solo una vez. |
+| `POST /api/login` | No | Verifica usuario/contraseña y establece cookie de sesión. |
+| `POST /api/logout` | Cookie, si existe | Invalida la sesión actual y caduca la cookie. |
+| `GET /api/me` | Sí | Devuelve el nombre de la cuenta autenticada. |
+| `GET /api/state` | Sí | Carga y normaliza el estado JSON de esa cuenta. |
+| `PUT /api/state` | Sí | Valida y escribe el estado completo. |
 
-No hay código de roles ni autorización por usuario identificable. «Mi cuenta» muestra el perfil local «Estudiante» y preferencias; no es autenticación.
+Las solicitudes `POST`, `PUT` y `DELETE` deben tener un origen coincidente con `TRIPPY_PUBLIC_ORIGIN` o, si no se configuró uno, con el origen HTTP de la solicitud. El cuerpo JSON tiene un límite de 6 MiB. Los recursos estáticos solo admiten `GET` y `HEAD`.
 
 ## 7. Persistencia y modelo de datos
 
-### 7.1 Implementación
+### 7.1 Formato y archivos
 
-El bundle abre IndexedDB con nombre `kora` y versión de esquema **4**. Cada almacén se crea con `keyPath: "id"`. No se usa SQL y no hay migraciones SQL, servidor de base de datos ni usuario de conexión. Las relaciones se expresan mediante identificadores dentro de los registros y se resuelven desde la aplicación.
+`state-validation.mjs` mantiene `version: 1`. El estado contiene las colecciones `notebooks`, `notes`, `codeSnippets`, `errors`, `flashcards`, `quizzes`, `quizResults` y `trash`. Si un estado antiguo de versión 1 no contiene una colección nueva, el validador la inicializa vacía.
 
-Al iniciar, la aplicación carga los almacenes en el estado de interfaz. Las escrituras, eliminaciones y limpieza total se ejecutan contra IndexedDB. Si IndexedDB no está disponible o no puede abrirse, se crea un adaptador en memoria. El estado incluye una señal de que no se pudo guardar; por lo tanto, el fallback no debe tratarse como almacenamiento persistente.
+El archivo de cada cuenta usa como nombre el usuario codificado en hexadecimal. `sarharf` se almacena como `73617268617266.json`. En Electron, los datos viven bajo `%APPDATA%\KORA-Trippy-Animations\data\`; en desarrollo, bajo `TRIPPY_DATA_DIR` (por defecto `.\data\`). La escritura usa archivos temporales y renombrado atómico; las escrituras de una cuenta se serializan mediante una cola y el servidor conserva una caché en memoria.
 
-### 7.2 Almacenes
+### 7.2 Diagrama lógico
 
-| Almacén | Propósito observado |
-|---|---|
-| `notebooks` | Cuadernos, orden, icono/color, archivo y marcas temporales. |
-| `notes` | Apuntes, cuaderno asociado, cuerpo Markdown, categorías, estado de estudio y fechas. |
-| `categories` | Categorías utilizadas para clasificar apuntes. |
-| `snippets` | Fragmentos de código, lenguaje, explicación y ejemplo. |
-| `glossary` | Términos, definiciones y ejemplos. |
-| `errors` | Registros de errores y su resolución. |
-| `flashcards` | Tarjetas de estudio. |
-| `reviews` | Estado e historial de repasos de tarjetas. |
-| `quizzes` | Cuestionarios. |
-| `questions` | Preguntas asociadas a un cuestionario. |
-| `attempts` | Intentos y resultados de cuestionarios. |
-| `sessions` | Sesiones de actividad con módulo y marcas temporales. |
-| `events` | Eventos de actividad utilizados por el progreso. |
+```mermaid
+erDiagram
+    NOTEBOOK ||--o{ NOTE : contiene
+    NOTE o|--o{ FLASHCARD : origen_opcional
+    CODE_SNIPPET o|--o{ ERROR : origen_opcional
+    CODE_SNIPPET o|--o{ FLASHCARD : origen_opcional
+    QUIZ ||--o{ QUIZ_RESULT : intentos
+```
 
-### 7.3 Diccionario de datos lógico
+El diagrama representa referencias por identificador, no restricciones de una base relacional. La validación sí exige que `notes.notebookId` corresponda a un cuaderno presente. Los campos `sourceNoteId`, `sourceSnippetId`, `sourceCodeId` y `quizId` se guardan como referencias, pero no se verifica que su destino exista en todas las operaciones. La papelera almacena una copia del elemento eliminado; un cuaderno incluye una lista anidada de sus apuntes.
 
-Los almacenes son colecciones de objetos JavaScript, no tablas con tipos SQL ni restricciones relacionales. La tabla resume campos usados o accesibles en el bundle; no pretende ser una especificación exhaustiva de cada objeto.
+### 7.3 Diccionario de datos
 
-| Entidad | Campos observables | Relaciones y reglas |
+| Colección | Campos principales | Reglas relevantes |
 |---|---|---|
-| Cuaderno (`notebooks`) | `id`, `name`, `color`, `icon`, `archived`, `position`, `createdAt`, `updatedAt`, `deletedAt` | `name` se recorta y limita a 80 caracteres en creación/edición. |
-| Apunte (`notes`) | `id`, `notebookId`, `title`, `bodyMd`, `categoryIds`, `status`, `createdAt`, `updatedAt`, `deletedAt` | Pertenece a un cuaderno; mantiene IDs de categorías y un estado de estudio. |
-| Categoría (`categories`) | Identificador y nombre | Se asocia al apunte mediante `categoryIds`; la lista de filtros se construye desde los nombres existentes. |
-| Fragmento (`snippets`) | `id`, `title`, `language`, `code`, `explanation`, `example`, `createdAt` | El Markdown exporta código con un bloque identificado por el lenguaje. |
-| Término (`glossary`) | `id`, `term`, `definition`, `example` | Se comprueba duplicidad normalizando Unicode, espacios, mayúsculas y acentos. |
-| Error (`errors`) | `id`, `title`, `context`, descripción, causa, solución, `resolved`, `noteId` | Puede enlazarse a un apunte; el estado resuelto se refleja en la interfaz. |
-| Tarjeta (`flashcards`) | Identificador y contenido de pregunta/respuesta | Las revisiones asociadas se guardan en `reviews`. |
-| Revisión (`reviews`) | Identificador de la tarjeta, caja, contador de repasos y fecha del siguiente repaso | Se usan hasta cinco cajas; los intervalos codificados son 1, 2, 4, 8 y 16 días. Una respuesta negativa vuelve a la primera caja. |
-| Cuestionario (`quizzes`) | Identificador y datos descriptivos del cuestionario | Se relaciona con `questions` mediante `quizId`; sus resultados se conservan en `attempts`. |
-| Pregunta (`questions`) | `quizId`, `position`, `kind`, `prompt`, `options`, `answers` y/o respuesta corta | `kind` contempla `opcion_multiple`, `verdadero_falso` y `respuesta_corta`; una pregunta de opción múltiple necesita al menos dos opciones. |
-| Intento (`attempts`) | `id`, `createdAt` y datos del resultado | Cada envío de cuestionario registra un intento. |
-| Sesión (`sessions`) | `id`, `module`, `startedAt`, `endedAt` | La detección de actividad termina una sesión cuando hay más de dos minutos de inactividad. |
-| Evento (`events`) | Identificador, tipo de evento, módulo y marca temporal | Se utiliza para métricas y uso por módulo. |
+| `notebooks` | `id`, `name`, `color`, `createdAt`, `updatedAt` | ID único; nombre requerido hasta 80 caracteres; color de la paleta soportada. |
+| `notes` | `id`, `notebookId`, `title`, `bodyMd`, `status`, `tags`, fechas | ID único; cuaderno existente; título requerido hasta 160; cuerpo hasta 200 000; estado `nuevo`, `repaso` o `dominado`; hasta 12 etiquetas normalizadas. |
+| `codeSnippets` | `id`, `title`, `description`, `language`, `code`, `category`, `topic`, `tags`, `explanation`, `comments`, `versions`, fechas | Hasta 500; código hasta 200 000 caracteres; descripción 2 000, explicación 20 000, comentarios 12 000; hasta 30 versiones. |
+| `errors` | `id`, `title`, `description`, `code`, `message`, `language`, `solution`, `fixedCode`, `category`, `topic`, `tags`, `status`, `sourceCodeId`, fechas | Hasta 2 000; título requerido; estado `pending` o `solved`; los campos de texto tienen máximos propios validados. |
+| `flashcards` | `id`, `front`, `back`, `topic`, `status`, referencias de origen, `reviewedAt`, fechas | Hasta 10 000; frente y reverso requeridos; estado `new`, `review` o `known`. |
+| `quizzes` | `id`, `title`, `topic`, `questions`, fechas | Hasta 500 cuestionarios; título requerido; de 1 a 100 preguntas. |
+| `questions` (anidadas) | `id`, `prompt`, `type`, `options`, `correctIndex`, `explanation` | Tipos `multiple`/`true-false`; opciones de selección múltiple entre 2 y 6; verdadero/falso exactamente 2. |
+| `quizResults` | `id`, `quizId`, `score`, `total`, `answers`, `completedAt` | Hasta 10 000; `0 ≤ score ≤ total`; `answers` tiene `total` posiciones; `-1` representa pregunta sin responder. |
+| `trash` | `id`, `kind`, `item`, `deletedAt` | Hasta 10 000; `kind`: `note`, `code`, `error` o `notebook`; conserva una copia del elemento. |
 
-`localStorage` conserva preferencias bajo `kora:prefs` (tema, animación, modo calmo, pausa de fondo, estado de navegación y metadatos del recordatorio de copia). Esas preferencias no son equivalentes a las entidades de IndexedDB.
+Los límites anteriores son validaciones del servidor; el formulario puede limitar algunos campos antes de enviar el estado.
 
-## 8. Reglas de negocio y validaciones
+## 8. Autenticación, autorización y seguridad
 
-- Los cuadernos nuevos reciben posiciones consecutivas; el nombre se normaliza, recorta y limita a 80 caracteres.
-- Los apuntes tienen estados de estudio «Nuevo», «En repaso» y «Dominado». La vista permite filtrar por estado y categoría.
-- Los términos del glosario se comparan ignorando diferencias de mayúsculas y diacríticos, después de normalizar y recortar el texto.
-- El editor valida direcciones de enlace e imagen como HTTP/HTTPS. La inserción de imágenes locales está limitada a 512 KB y convierte su contenido a un recurso incrustado en Markdown.
-- Las preguntas de opción múltiple exigen al menos dos opciones y una respuesta válida; el formulario evita guardar elementos incompletos.
-- El sistema de tarjetas limita las cajas de repaso a cinco y programa intervalos de 1, 2, 4, 8 y 16 días.
-- El recordatorio de copia se activa si hay al menos cinco elementos computados por KORA y han pasado siete días desde la última copia; permite posponerlo tres días.
-- Las rutas de búsqueda y creación con atajos no se activan mientras se escribe en campos editables ni con Ctrl/Meta/Alt.
+- Solo se admite el usuario `sarharf`; no hay roles ni registro público.
+- La contraseña tiene entre 8 y 1024 caracteres. Node la deriva mediante `scrypt` con sal aleatoria de 16 bytes y salida de 64 bytes.
+- La comparación de hashes usa `timingSafeEqual`. `accounts.json` guarda sal y hash, no contraseña en claro.
+- El acceso limita ocho fallos por dirección durante una ventana de 15 minutos. El contador y las sesiones viven en memoria y se reinician al cerrar el proceso.
+- La cookie es `HttpOnly`, `SameSite=Strict`, de hasta ocho horas; `Secure` se agrega cuando `TRIPPY_SECURE_COOKIE=true`.
+- La interfaz envía secretos de acceso al servidor local; no los incluye en el JavaScript servido.
+- El servidor aplica una CSP restrictiva, `nosniff`, validación de origen en métodos mutables y comprobación de rutas estáticas bajo `publicRoot`.
+- Electron usa aislamiento de contexto, integración Node deshabilitada, sandbox y navegación externa controlada.
 
-## 9. Importación, exportación y borrado
+El modo de desarrollo lee la contraseña desde `.env`, que debe protegerse como secreto local. El servidor HTTP no incorpora TLS; no lo expongas directamente a redes públicas. Una configuración de proxy, servicio Windows o perímetro de producción no forma parte del proyecto.
 
-La copia JSON se crea en el navegador mediante `Blob` y una descarga. La exportación empaqueta las colecciones del estado de dominio e incluye una fecha de exportación. La importación compara registros por identificador y fecha de actualización: fusiona con el estado actual, evita borrar datos existentes y usa el registro de la copia solo si es más reciente. La interfaz presenta un resumen previo y rechaza formatos no reconocidos, archivos excesivamente grandes o versiones futuras incompatibles.
+## 9. Validación y manejo de errores
 
-La exportación Markdown produce una representación legible de los cuadernos/apuntes y de otros módulos incluidos por el generador. No equivale al respaldo JSON completo. La eliminación lógica utiliza marcas `deletedAt` en entidades que admiten papelera; también existen acciones de eliminación permanente y limpieza total.
+`validateState()` comprueba el tipo de cada colección, límites de cantidades, campos requeridos, longitudes, identificadores duplicados y referencias de apuntes a cuadernos. Normaliza fechas inválidas al momento actual y completa colecciones nuevas ausentes.
 
-## 10. Sincronización local, errores y funcionamiento sin red
+El servidor devuelve estados HTTP explícitos: 400 para JSON o datos inválidos, 401 para falta de sesión/credenciales, 403 para origen o clave no autorizados, 409 para configurar una cuenta ya existente, 413 para cuerpo demasiado grande, 415 para tipo de contenido inesperado, 429 para demasiados accesos y 500 para errores internos. Las excepciones se registran mediante `logger`; los errores no se convierten en estados de éxito.
 
-El canal `BroadcastChannel` llamado `kora-sync` notifica cambios entre ventanas. Al recibir la notificación, las ventanas recargan los datos desde IndexedDB. Esto es sincronización entre ventanas del mismo origen/perfil, no sincronización remota.
+El frontend muestra mensajes de formulario o notificaciones. `updateState()` conserva una copia previa del estado; si el servidor rechaza la escritura, restaura ese estado y presenta el error.
 
-La persistencia captura errores de escritura y muestra «No se pudo guardar en este equipo. Tus últimos cambios podrían perderse». La apertura bloqueada de IndexedDB puede producir «IndexedDB bloqueada». Importaciones inválidas y referencias a elementos eliminados muestran avisos en la interfaz.
+## 10. Configuración de desarrollo y construcción
 
-El ejecutable carga recursos locales y su contenido de dominio se guarda en el equipo, de modo que no necesita un backend para sus funciones principales. Los contenidos externos requieren conexión. Aunque están presentes `manifest.webmanifest` y `sw.js`, el registro web del service worker depende de HTTPS o localhost y el `main.cjs` carga la interfaz con `kora://`; no se debe asumir una modalidad PWA activa en este paquete.
+Scripts declarados en `package.json`:
 
-## 11. Seguridad observada
+| Script | Acción |
+|---|---|
+| `npm start` | Inicia `server.mjs` cargando `.env` si existe. |
+| `npm test` | Ejecuta `node --test`. |
+| `npm run build:portable` | Llama al script PowerShell para ensamblar el ejecutable de Windows. |
 
-El proceso de ventana desactiva la integración directa de Node en el renderer, activa aislamiento de contexto y sandbox, rechaza navegación fuera de `kora://app/` y abre enlaces HTTP/HTTPS en el navegador externo. El handler del protocolo personalizado comprueba que los archivos solicitados permanezcan dentro de `webRoot`.
+Para instrucciones reproducibles de Node, `.env`, runtime esperado, salida y despliegue, consulta el [Manual de despliegue](./MANUAL_DESPLIEGUE.md). El proyecto fuente local también incluye un `README.md`, que no se publica en este repositorio.
 
-Los datos de estudio se almacenan localmente y la copia de seguridad puede contenerlos en texto legible. Deben protegerse el perfil de Windows y los archivos JSON. No se encontró cifrado de las copias, autenticación, permisos por rol ni control remoto de acceso. Estas observaciones describen el código inspeccionado y no constituyen una auditoría de seguridad.
+## 11. Consideraciones de mantenimiento
 
-## 12. Entorno de desarrollo y evolución
+- Antes de alterar `version: 1` o las colecciones, conserva lectura de los estados existentes y agrega pruebas de normalización.
+- Mantén límites coherentes entre formularios, `state-validation.mjs`, el importador y el máximo de cuerpo HTTP.
+- No ejecutes código guardado ni lo evalúes como JavaScript; es contenido aportado por la persona usuaria.
+- Si cambias la clase o estructura del editor superpuesto, valida que `textarea.code-input`, `pre.code-highlight` y el gutter coincidan en tamaño y desplazamiento.
+- Verifica restauración de copias JSON en una instancia de prueba antes de publicar cambios.
+- Para actualizar el ejecutable, conserva separado el runtime, la aplicación y `%APPDATA%\KORA-Trippy-Animations`; valida la salida completa y el arranque.
+- La aplicación antigua usa IndexedDB y no comparte el modelo JSON. Cualquier migración futura debe diseñarse, validarse y probarse como una función específica; no basta con copiar archivos.
 
-La distribución no permite establecer un entorno de desarrollo reproducible: no incluye manifiesto completo de dependencias, scripts de compilación, fuentes originales ni pruebas. `resources\app\package.json` declara únicamente `name`, `productName`, `version` y `main`. No ejecutes `npm install` o comandos de construcción genéricos sobre este artefacto esperando regenerar el producto.
-
-Para realizar cambios mantenibles se necesita el repositorio fuente correspondiente a la versión 0.5.0 y sus instrucciones oficiales de construcción. En el proyecto fuente, los cambios de modelo deberían conservar compatibilidad de exportación/importación y contemplar migración de IndexedDB; la versión de base actual observada es 4. Antes de cambiar persistencia o estructuras, crear pruebas de importación, actualización y recuperación de copias.
-
-## 13. Recomendaciones de mantenimiento
-
-- Mantener la distribución completa y asociar cada paquete a su versión.
-- Verificar restauración de una copia JSON antes de una actualización importante.
-- Probar importaciones de la versión anterior y casos de conflicto por fecha de actualización al cambiar el formato.
-- No depender de IndexedDB como único mecanismo de respaldo ni editar sus objetos manualmente.
-- Documentar cualquier cambio en las relaciones por IDs y en las reglas del cuestionario/repaso.
-- Si se requiere despliegue web, solicitar el repositorio fuente, configuración de hosting y procedimiento de publicación de PWA; dichos elementos no están incluidos en esta entrega.
-
-## 14. Referencias entre manuales
+## 12. Referencias
 
 - [Manual de usuario](./MANUAL_USUARIO.md)
 - [Manual de despliegue](./MANUAL_DESPLIEGUE.md)

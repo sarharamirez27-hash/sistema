@@ -1,114 +1,211 @@
-# KORA — Manual de despliegue
+# KORA · Manual de despliegue
 
-**Versión documentada:** 0.5.0  
-**Distribución analizada:** paquete de escritorio para Windows  
-**Destino:** usuarios locales o distribución de la carpeta completa
+**Aplicación:** KORA · Trippy Animations 1.0.0  
+**Opciones documentadas:** servidor local de desarrollo y ejecutable portátil para Windows  
+**Proyecto fuente local:** `trippy-animations-nuevo`
 
-Este manual describe cómo poner en funcionamiento la copia entregada. No presupone un backend, un servidor web ni una base de datos externa: ninguno aparece configurado en los archivos analizados. La arquitectura y los límites del paquete se detallan en el [Manual técnico](./MANUAL_TECNICO.md).
+## 1. Alcance
 
-## 1. Qué incluye y qué no incluye esta entrega
+Este manual describe el proyecto independiente `trippy-animations-nuevo`. El ejecutable portátil utiliza el runtime Electron que acompaña a la distribución original y sirve la interfaz desde un servidor HTTP local. También se puede iniciar el servidor Node en un navegador.
 
-La distribución contiene `kora.exe`, bibliotecas del runtime Electron/Chromium, `resources\app\main.cjs`, el paquete de metadatos de la aplicación y archivos web compilados en `resources\app\web`.
-
-No se encontraron fuentes originales, scripts de construcción, dependencias instalables, archivos `.env`, servidor de producción, base de datos SQL ni instalador. `resources\app\package.json` solo declara nombre, versión y punto de entrada; no define scripts de npm ni dependencias. Por eso, esta copia se ejecuta como aplicación empaquetada y no puede reconstruirse siguiendo comandos de desarrollo inferidos.
+La aplicación no requiere una base de datos SQL ni paquetes externos. No incluye un instalador MSI, servicio de Windows, proxy inverso, certificados TLS ni configuración de alojamiento web. La distribución compilada antigua de KORA y sus datos IndexedDB no se convierten automáticamente a este formato JSON.
 
 ## 2. Requisitos
 
-### Software confirmado
+### Para desarrollar o ejecutar el servidor con Node
 
-- Windows capaz de ejecutar el paquete y sus bibliotecas incluidas.
-- La carpeta completa extraída en una ubicación local con permisos de lectura y escritura adecuados para el perfil del usuario.
-- No se necesita instalar Node.js, npm, una base de datos ni un servidor para abrir el ejecutable distribuido.
+- Windows, macOS o Linux con Node.js **22.11 o posterior**. El proyecto declara `engines.node >=22.11`.
+- PowerShell 5.1 o posterior para el script de empaquetado Windows.
+- Permisos de lectura y escritura en la carpeta de datos.
+- No se especifica un mínimo de CPU, RAM o espacio en disco.
 
-### Requisitos no especificados
+No hay dependencias npm externas: el servidor usa módulos integrados de Node.js y el proyecto incluye sus recursos web.
 
-El proyecto no declara mínimos de CPU, memoria, espacio libre, versiones concretas de Windows ni políticas de servidor. No se deben tratar valores no documentados como requisitos oficiales.
+### Para ejecutar el paquete portátil
 
-## 3. Preparación y ejecución local
+- Windows compatible con el runtime Electron incluido.
+- Mantener juntos el `.exe`, DLL, archivos `.pak`, `locales`, `resources` y demás archivos de la carpeta generada.
+- No requiere instalar Node.js en el equipo usuario.
 
-1. Copia el paquete recibido en el equipo.
-2. Extrae **toda** la carpeta, sin abrir el ejecutable desde el interior del ZIP.
-3. Comprueba que `kora.exe`, `resources\` y los archivos DLL/Pak estén juntos como en la distribución.
-4. Abre `kora.exe` desde el Explorador de archivos.
-
-También se puede ejecutar desde PowerShell, ubicándose primero en la carpeta raíz extraída:
-
-```powershell
-Set-Location 'C:\ruta\KORA-compilado-mejorado'
-.\kora.exe
-```
-
-La carpeta temporal usada como ejemplo debe cambiarse por la ruta real. No se requiere ejecutar un comando de instalación ni un `npm install`.
-
-## 4. Datos y configuración
-
-No existe configuración mediante variables de entorno en esta entrega. Tampoco hay credenciales de conexión que configurar.
-
-La aplicación usa almacenamiento local de Chromium: una base IndexedDB lógica llamada `kora` y almacenamiento local para preferencias. El archivo `LEEME.txt` indica que los datos de escritorio se guardan en:
+## 3. Estructura relevante
 
 ```text
-%APPDATA%\KORA
+KORA-compilado-mejorado/
+├── documentación/
+└── trippy-animations-nuevo/
+    ├── .env.example
+    ├── LEEME.txt
+    ├── README.md
+    ├── main.cjs
+    ├── package.json
+    ├── server.mjs
+    ├── state-validation.mjs
+    ├── public/
+    ├── scripts/build-portable.ps1
+    └── tests/server.test.mjs
 ```
 
-El código no configura una ruta de datos propia en `main.cjs`; la ruta informada por el paquete corresponde al directorio de datos de usuario de Electron. Los archivos de datos no se deben mover o editar manualmente. Para transportarlos o recuperarlos, utilice «Ajustes» > «Mis datos» > «Exportar copia (JSON)» e importe la copia desde la aplicación.
+Las distribuciones generadas quedan en `trippy-animations-nuevo\release\`.
 
-No hay un proceso de creación o importación de base de datos SQL. IndexedDB se abre automáticamente al iniciar KORA y crea los almacenes requeridos cuando faltan. Si no se puede abrir IndexedDB, el bundle contempla un almacenamiento en memoria; este no constituye persistencia y los cambios pueden perderse al cerrar la aplicación.
+## 4. Preparación del entorno local
 
-## 5. Despliegue en un equipo o entorno productivo
+Abre PowerShell desde la carpeta que contiene `trippy-animations-nuevo` y entra al proyecto:
 
-La modalidad compatible comprobada es distribuir y ejecutar la carpeta de escritorio:
+```powershell
+Set-Location .\trippy-animations-nuevo
+node --version
+```
 
-1. Exporta una copia JSON de los datos antes de cambiar la versión.
-2. Distribuye el paquete completo sin separar `kora.exe` de `resources\`, DLL, archivos `.pak` ni `locales\`.
-3. En el equipo de destino, extrae el contenido en una carpeta local.
-4. Inicia `kora.exe` con el usuario de Windows que utilizará KORA.
-5. Si es un equipo con datos previos, inicia KORA desde el perfil correspondiente y verifica que estén disponibles. Si necesitas mover información entre perfiles o equipos, usa una copia JSON.
+Confirma que Node indique `v22.11.0` o posterior. No es necesario ejecutar `npm install`. El proyecto se declara como ES Modules (`"type": "module"`) y no enumera dependencias de terceros.
 
-No hay servicio de Windows, API, servidor central, cuenta compartida o despliegue multiusuario implementado en la entrega. Cada perfil de Windows mantiene su propio almacenamiento local. Para una organización, la distribución puede copiarse a varios equipos, pero los datos de cada usuario permanecen independientes salvo que se exporten e importen manualmente.
+## 5. Configurar el acceso y el servidor de desarrollo
 
-## 6. Alternativas web y PWA
+1. Crea el archivo local de configuración:
 
-`resources\app\web` contiene `index.html`, un manifiesto PWA y `sw.js`. El código web intenta registrar el service worker solo bajo HTTPS o en `localhost`/`127.0.0.1`. Sin embargo, la entrega no incluye un servidor web, configuración de hosting, dominio, certificados, ni los archivos de código fuente y construcción necesarios para publicar una versión web. El archivo `KORA.html` mencionado en `LEEME.txt` no está presente en la carpeta recibida.
+   ```powershell
+   Copy-Item .env.example .env
+   notepad .env
+   ```
 
-Por tanto, no hay un procedimiento web o PWA reproducible que pueda recomendarse para este paquete. No se debe servir simplemente la carpeta por HTTP ni asumir que la modalidad descrita en el texto de ayuda está incluida en esta distribución.
+2. En `.env`, establece una contraseña privada de al menos 8 caracteres. Sustituye el valor vacío de `TRIPPY_PASSWORD`; no guardes ni publiques una contraseña real en Git.
 
-## 7. Actualización y mantenimiento
+   ```dotenv
+   TRIPPY_USER=sarharf
+   TRIPPY_PASSWORD=REEMPLAZAR_POR_UNA_CONTRASENA_PRIVADA
+   TRIPPY_HOST=127.0.0.1
+   TRIPPY_PORT=4173
+   TRIPPY_DATA_DIR=./data
+   TRIPPY_PUBLIC_ORIGIN=http://127.0.0.1:4173
+   TRIPPY_SECURE_COOKIE=false
+   ```
 
-El procedimiento que indica `LEEME.txt` es:
+3. Ejecuta el servidor:
 
-1. Exportar una copia JSON desde la versión que se está utilizando.
-2. Extraer la nueva distribución en una carpeta nueva o distinta.
-3. Abrir el nuevo `kora.exe`; no es necesario instalar la aplicación.
-4. Confirmar que los datos anteriores aparecen. Si se van a trasladar a otro perfil o equipo, importar el respaldo JSON.
+   ```powershell
+   npm start
+   ```
 
-El paquete indica que los datos están fuera de la carpeta del programa y que se actualizan automáticamente al abrir una versión nueva. Aun así, conserva el respaldo hasta comprobar la actualización. No reemplaces manualmente archivos internos ni elimines la carpeta `%APPDATA%\KORA`.
+4. Abre la dirección que aparece en consola; con la configuración de ejemplo es `http://127.0.0.1:4173`.
+5. Para detener el servidor, usa `Ctrl+C`.
 
-Para mantenimiento rutinario:
+La cuenta está restringida al usuario `sarharf`. El valor de `TRIPPY_PUBLIC_ORIGIN` debe coincidir con el origen del navegador, incluidos protocolo, host y puerto. El archivo `.env` está excluido por `.gitignore`.
 
-- conserva al menos una copia JSON independiente;
-- distribuye únicamente paquetes completos y de origen confiable;
-- no edites directamente la IndexedDB;
-- registra la versión utilizada al reportar un problema.
+## 6. Pruebas y comprobaciones
 
-## 8. Solución de problemas
+Desde `trippy-animations-nuevo`, ejecuta:
 
-| Problema | Comprobaciones y solución |
+```powershell
+node --check server.mjs
+node --check state-validation.mjs
+node --check public\app.js
+npm test
+```
+
+Las pruebas usan directorios temporales; no requieren una base de datos de desarrollo. `npm test` ejecuta la suite integrada de Node mediante `node --test`.
+
+## 7. Generar el ejecutable portátil de Windows
+
+### Runtime esperado
+
+Por defecto, `scripts\build-portable.ps1` busca el runtime un nivel arriba de `trippy-animations-nuevo`. Allí espera:
+
+- `kora.exe`;
+- la carpeta `locales\`;
+- `resources\app\icon.png`.
+
+Si el runtime está en otra carpeta, define `KORA_RUNTIME_DIR` con la ruta absoluta que contiene esos recursos. Por ejemplo:
+
+```powershell
+$env:KORA_RUNTIME_DIR = 'D:\KORA-runtime'
+```
+
+La ruta indicada debe contener la estructura de runtime esperada; el script falla explícitamente si falta el ejecutable o `locales`.
+
+### Construcción
+
+El script no sobrescribe una carpeta de salida existente. Para una salida nueva:
+
+```powershell
+$env:KORA_OUTPUT_DIR = Join-Path (Get-Location) 'release\KORA-Trippy-Animations-1.0'
+npm run build:portable
+```
+
+Si se omite `KORA_OUTPUT_DIR`, la salida predeterminada es `release\KORA-Trippy-Animations\`. Si ya existe, el script se detiene: selecciona otro nombre de salida, sin borrar ni reemplazar la carpeta previa.
+
+El resultado es una carpeta completa. Ejecuta `KORA-Trippy-Animations.exe` desde ella y conserva todos sus archivos juntos. El primer inicio solicita definir la contraseña de `sarharf`; no se incluye una contraseña inicial.
+
+### Crear un ZIP para distribución
+
+Desde `trippy-animations-nuevo`, ajusta el nombre del archivo para no sobrescribir otra copia:
+
+```powershell
+Compress-Archive -LiteralPath .\release\KORA-Trippy-Animations-1.0 `
+  -DestinationPath .\release\KORA-Trippy-Animations-portable-1.0.zip
+```
+
+Distribuye el ZIP y pide a la persona usuaria que extraiga su contenido completo antes de ejecutar el `.exe`.
+
+## 8. Datos, credenciales y copias
+
+### Aplicación de escritorio
+
+Electron configura su directorio local como:
+
+```text
+%APPDATA%\KORA-Trippy-Animations\
+├── accounts.json
+└── data\
+    └── 73617268617266.json
+```
+
+`accounts.json` guarda el usuario, una sal aleatoria y el resultado de `scrypt`, no la contraseña en texto legible. El archivo JSON de datos corresponde al usuario `sarharf` codificado en hexadecimal. No elimines `%APPDATA%\KORA-Trippy-Animations` para actualizar la aplicación: también contiene el material de estudio.
+
+### Servidor de desarrollo
+
+El usuario se configura desde `.env`; por defecto los datos se escriben en `.\data\73617268617266.json`. Respalda el directorio configurado con `TRIPPY_DATA_DIR` y el archivo `.env` de forma segura. No publiques ninguno de ellos.
+
+La función **Mis datos > Exportar copia** descarga un respaldo JSON. Importar una copia reemplaza el estado de datos actual de esa cuenta; exporta antes de importar.
+
+## 9. Configuración de producción
+
+El servidor incluido usa HTTP. No lo expongas directamente a Internet. Una instalación en un servidor requeriría, como mínimo, un proxy TLS externo, un proceso supervisado, un origen HTTPS, almacenamiento persistente y una política de copias de seguridad; esos componentes no están incluidos ni configurados en este proyecto.
+
+Ejemplo de variables para una instancia detrás de un proxy HTTPS ya configurado:
+
+```powershell
+$env:TRIPPY_HOST = '127.0.0.1'
+$env:TRIPPY_PORT = '4173'
+$env:TRIPPY_PUBLIC_ORIGIN = 'https://kora.ejemplo.com'
+$env:TRIPPY_SECURE_COOKIE = 'true'
+$env:TRIPPY_DATA_DIR = 'D:\KORA\data'
+npm start
+```
+
+El proxy debe servir el origen público indicado y reenviar las solicitudes a la instancia local. Configura TLS, firewall, permisos de archivos, monitoreo y administración del proceso fuera de KORA. No se entrega un archivo de configuración para un proxy concreto.
+
+## 10. Límites de migración y actualización
+
+- No hay importación automática desde IndexedDB de la distribución compilada anterior.
+- El importador de KORA acepta el formato `kora-backup`, versión `1`, generado por esta aplicación; no asumas que acepta exportaciones de la aplicación antigua.
+- Antes de actualizar, exporta una copia JSON y verifica que puedes conservar el directorio `%APPDATA%\KORA-Trippy-Animations`.
+- Para actualizar el ejecutable, genera y extrae una carpeta de distribución nueva. No sustituyas individualmente archivos dentro de una carpeta existente.
+- Conserva la carpeta de datos de usuario al cambiar la carpeta del programa.
+
+## 11. Solución de problemas de despliegue
+
+| Síntoma | Causa probable y acción |
 |---|---|
-| Windows impide iniciar el ejecutable | Verifica el origen del paquete. `LEEME.txt` indica que esta copia no está firmada. Solo continúa si la distribución es confiable y la política del equipo lo permite. |
-| La aplicación no inicia o muestra errores de bibliotecas | Asegúrate de haber extraído el paquete completo y no haber movido solamente `kora.exe`. Vuelve a extraer una copia íntegra. |
-| Los datos no aparecen después de cambiar de usuario de Windows | El almacenamiento es local al perfil. Inicia la aplicación con el perfil original o exporta/importa una copia JSON. |
-| Se muestra un aviso de que no se pudo guardar | Comprueba espacio disponible y permisos del perfil; cierra ventanas duplicadas y vuelve a abrir KORA. Exporta respaldo si la aplicación todavía permite hacerlo. |
-| La importación se rechaza | Usa un archivo JSON generado por KORA, verifica que esté íntegro y que la versión de la aplicación pueda leerlo. Una copia de una versión futura puede no ser compatible. |
-| Se desea desplegar en un servidor | Esta carpeta no incluye un servidor ni instrucciones de publicación web. Usa el paquete de escritorio o solicita la entrega del proyecto fuente y su configuración oficial de hosting. |
+| `TRIPPY_PASSWORD` no está configurada o es demasiado corta | Completa `.env` con una contraseña de 8 a 1024 caracteres para `sarharf`; reinicia `npm start`. |
+| `TRIPPY_PORT` no es válido | Usa un entero entre 1 y 65535. Si otro proceso ocupa el puerto, elige otro y actualiza `TRIPPY_PUBLIC_ORIGIN`. |
+| Respuesta «La solicitud no proviene de este sitio» | El origen recibido no coincide con `TRIPPY_PUBLIC_ORIGIN`; ajusta el host, protocolo y puerto. |
+| El navegador no conserva la sesión HTTPS | Con TLS, configura `TRIPPY_SECURE_COOKIE=true`; no actives esa opción si accedes por HTTP local. |
+| No se pueden escribir datos | Comprueba permisos y espacio disponible en `TRIPPY_DATA_DIR` o `%APPDATA%`. |
+| El empaquetado no encuentra `kora.exe` o `locales` | Revisa `KORA_RUNTIME_DIR` y que la ruta contenga el runtime Electron completo. |
+| El script dice que la salida ya existe | Define un `KORA_OUTPUT_DIR` nuevo; el script evita sobrescribir la distribución previa. |
+| Windows advierte sobre el ejecutable | El paquete no declara firma digital. Verifica el origen antes de continuar. |
 
-## 9. Archivos relevantes para el operador
+## 12. Referencias
 
-| Ruta desde la raíz de la distribución | Función |
-|---|---|
-| `kora.exe` | Ejecutable de escritorio. |
-| `resources\app\main.cjs` | Proceso principal Electron y creación de la ventana. |
-| `resources\app\package.json` | Metadatos de la aplicación y punto de entrada. |
-| `resources\app\web\index.html` | Entrada de la interfaz compilada. |
-| `resources\app\web\assets\` | JavaScript, CSS y fuentes de la interfaz. |
-| `resources\app\web\manifest.webmanifest`, `sw.js` | Recursos PWA presentes; no sustituyen una configuración de servidor. |
-| `LEEME.txt` | Instrucciones incluidas por la distribución para abrir, actualizar y respaldar datos. |
+- [Manual de usuario](./MANUAL_USUARIO.md)
+- [Manual técnico](./MANUAL_TECNICO.md)
+El proyecto fuente local incluye un `README.md` con instrucciones adicionales. No se publica en este repositorio, que contiene únicamente los tres manuales.

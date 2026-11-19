@@ -1,150 +1,196 @@
-# KORA — Manual de usuario
+# KORA · Manual de usuario
 
-**Aplicación:** KORA 0.5.0  
-**Público:** estudiantes y personas que utilizan el cuaderno de estudio  
-**Tipo de aplicación:** aplicación de escritorio para Windows con datos locales
+**Aplicación documentada:** KORA · Trippy Animations 1.0.0  
+**Dirigido a:** estudiantes y personas que utilizan KORA para organizar apuntes, código y material de estudio  
+**Alcance:** aplicación independiente ubicada en `trippy-animations-nuevo`
 
-Este manual explica las funciones que se encuentran en la distribución de KORA incluida con el proyecto. Para instalar o actualizar la aplicación, consulta el [Manual de despliegue](./MANUAL_DESPLIEGUE.md). Los detalles internos están en el [Manual técnico](./MANUAL_TECNICO.md).
+> Esta versión es independiente de la distribución KORA compilada que también se entrega en la carpeta principal. No importa automáticamente sus datos de IndexedDB. Para instalación y copias de seguridad, consulta el [Manual de despliegue](./MANUAL_DESPLIEGUE.md); para conocer su arquitectura, consulta el [Manual técnico](./MANUAL_TECNICO.md).
 
-## 1. Introducción y objetivo
+## 1. ¿Qué es KORA?
 
-KORA reúne en un solo cuaderno herramientas para organizar apuntes, guardar fragmentos de código, crear un glosario y registrar errores y soluciones. También permite estudiar mediante tarjetas y cuestionarios, y consultar indicadores de actividad y progreso.
+KORA es un espacio personal para organizar cuadernos y apuntes, guardar fragmentos de código, documentar errores y soluciones, y estudiar con tarjetas y cuestionarios. Incluye búsqueda general, una papelera recuperable, gráficos de progreso y preferencias de accesibilidad.
 
-Su objetivo es ayudar a organizar y repasar material de estudio. Los datos se guardan en el equipo donde se utiliza la aplicación; no se encontró una función de sincronización con una cuenta o un servicio remoto.
+La información se guarda localmente en archivos JSON cuando se utiliza la aplicación de escritorio. No hay sincronización automática entre equipos, gestión de roles ni servicio de cuentas en Internet.
 
-## 2. Alcance y requisitos
+## 2. Requisitos para utilizarla
 
-La distribución analizada es una carpeta para Windows que contiene `kora.exe` y los recursos de Electron. Se debe conservar y extraer la carpeta completa antes de abrirla. No se encontró un instalador, un acceso web publicado ni el archivo `KORA.html` que menciona `LEEME.txt`; por tanto, esas opciones no se describen como disponibles en esta copia.
+- **Aplicación de escritorio:** Windows y la carpeta completa de KORA extraída. No muevas el ejecutable fuera de esa carpeta.
+- **Uso en navegador:** requiere que la persona encargada ejecute el servidor local con Node.js 22.11 o posterior.
+- No necesitas instalar una base de datos ni conectarte a Internet para las funciones locales.
+- No se especifica un requisito mínimo de memoria, procesador o versión de navegador.
 
-La aplicación no requiere una cuenta ni inicio de sesión. El menú «Mi cuenta» muestra el perfil local «Estudiante» y opciones de apariencia; no es una gestión de cuentas o permisos.
+## 3. Primer acceso e inicio de sesión
 
-## 3. Acceso e interfaz
+### Primera ejecución de la aplicación de escritorio
 
-1. Extrae toda la carpeta de KORA a una ubicación local.
-2. Abre `kora.exe`.
-3. Si Windows muestra una advertencia de SmartScreen, verifica primero que confías en el origen del paquete. La distribución indica que el ejecutable no está firmado digitalmente; no ejecutes archivos de origen desconocido.
+1. Abre `KORA-Trippy-Animations.exe`.
+2. En la pantalla **Primera ejecución**, define y confirma una contraseña para el usuario `sarharf`.
+3. La contraseña debe tener entre 8 y 1024 caracteres. No existe una contraseña predeterminada.
+4. Después de guardar la configuración, inicia sesión con el usuario `sarharf` y la contraseña que acabas de elegir.
 
-La interfaz presenta un menú de navegación para acceder a los módulos. El encabezado incluye el menú «Mi cuenta». Las pantallas muestran botones de acción, formularios, filtros o listas según el módulo. Los mensajes de confirmación y error aparecen en la propia aplicación.
+La contraseña no se muestra en pantalla ni se guarda como texto legible. La aplicación no tiene recuperación de contraseña; conserva una copia de seguridad antes de realizar cambios en los archivos locales.
 
-En «Mi cuenta» se puede elegir un tema y ajustar el modo calmo o la intensidad de las animaciones. La opción de instalar la aplicación como PWA depende de que KORA se ejecute desde un navegador y un origen compatible; no corresponde al uso del ejecutable de escritorio descrito aquí.
+### Sesiones
 
-## 4. Módulos y procedimientos
+La sesión dura hasta ocho horas y se invalida al cerrar sesión o reiniciar el servidor. Si la sesión caduca, vuelve a iniciar sesión. La aplicación admite una sola cuenta y no ofrece permisos por rol.
 
-### 4.1 Cuadernos y apuntes
+## 4. Interfaz y navegación
 
-Un cuaderno agrupa apuntes de una materia o proyecto. Para empezar:
+En una pantalla amplia, el menú lateral muestra:
 
-1. Abre la sección de cuadernos y selecciona «Crear cuaderno».
-2. Escribe el nombre y configura las opciones de color e icono que ofrece el formulario.
-3. Guarda el cuaderno y ábrelo.
-4. Crea un apunte, completa su título y contenido, y guarda los cambios.
-
-El contenido del apunte admite Markdown. El editor ampliado incorpora botones de formato para estilos de texto, títulos, listas, citas, alineación, sangría, enlaces, tablas e imágenes. También permite deshacer y rehacer cambios, pegar contenido con formato y previsualizar el resultado. Las imágenes locales admitidas por la barra del editor tienen un máximo de **512 KB por imagen**. Las imágenes o enlaces de Internet requieren que exista conexión para cargarlos.
-
-En «Todos los apuntes» se puede cambiar entre cuadrícula y lista, ordenar por fecha reciente o título, y filtrar por estado de estudio y categoría. La vista y los filtros se aplican a los apuntes visibles; el filtro de categorías se construye a partir de las categorías existentes.
-
-Las categorías sirven para clasificar apuntes. Los estados de estudio disponibles en la lista son «Nuevo», «En repaso» y «Dominado». Un cuaderno se puede archivar; los cuadernos archivados se muestran en su apartado correspondiente.
-
-### 4.2 Búsqueda
-
-Abre la búsqueda desde el menú o pulsa `/` cuando no estés escribiendo dentro de un campo. Escribe el término que quieres encontrar y utiliza los resultados para abrir el elemento correspondiente. Si `/` no abre la búsqueda, comprueba que el foco no esté en un cuadro de texto.
-
-### 4.3 Código
-
-En el módulo «Código»:
-
-1. Selecciona «Nuevo fragmento».
-2. Indica un título y el lenguaje del fragmento.
-3. Escribe o pega el código; añade explicación y ejemplo si son útiles.
-4. Guarda el fragmento.
-
-La interfaz permite copiar código al portapapeles. Si el portapapeles no está disponible, se muestra un aviso y se puede seleccionar el texto para copiarlo manualmente.
-
-### 4.4 Glosario
-
-1. Abre «Glosario» y elige «Nuevo término».
-2. Escribe el término y su definición; puedes añadir un ejemplo.
-3. Guarda el registro y utiliza la lista o el filtro de términos para localizarlo.
-
-El código comprueba duplicados de término sin distinguir mayúsculas ni acentos y normaliza los espacios al inicio y al final. Si aparece un aviso de duplicado, revisa si el término ya existe antes de crear otro.
-
-### 4.5 Errores y soluciones
-
-Este módulo permite conservar el contexto de un error y cómo se resolvió. Selecciona «Registrar error» y completa el título y los campos que muestre el formulario, como descripción, causa y solución. Puedes vincular un apunte cuando corresponda. Después de guardar, utiliza la acción de la pantalla para marcarlo como resuelto cuando ya lo hayas solucionado.
-
-La lista distingue los errores pendientes de los resueltos. Mantén una descripción concreta para poder reconocer el problema cuando vuelvas a consultarlo.
-
-### 4.6 Tarjetas y repasos
-
-1. Abre «Tarjetas» y selecciona «Nueva tarjeta».
-2. Escribe el enunciado o término y su respuesta.
-3. Guarda la tarjeta y selecciona «Repasar ahora» para estudiar las que estén pendientes.
-4. Después de mostrar la respuesta, indica si no la sabías o si la sabías. En el repaso, las teclas `1` y `2` corresponden a esas dos valoraciones.
-
-KORA organiza los repasos en cajas de repetición espaciada. Una valoración negativa devuelve la tarjeta a la primera caja; una positiva la avanza hasta un máximo de cinco. El intervalo programado aumenta según la caja. La pantalla de tarjetas muestra lo pendiente y el progreso de los repasos.
-
-### 4.7 Cuestionarios
-
-1. En «Cuestionarios», selecciona «Nuevo cuestionario».
-2. Añade preguntas y elige el tipo disponible: opción múltiple, verdadero o falso o respuesta corta.
-3. Completa el enunciado y la respuesta correcta. En las preguntas de opción múltiple, revisa las opciones y marca la correcta.
-4. Guarda el cuestionario y ábrelo para responderlo.
-5. Al terminar, revisa el resultado y el historial de intentos.
-
-El formulario valida que haya enunciados y respuestas válidas; para opción múltiple requiere al menos dos opciones. Si aparecen avisos de opciones vacías o respuestas incompletas, complétalas o elimínalas antes de guardar.
-
-### 4.8 Progreso
-
-El módulo de progreso presenta indicadores y gráficos calculados con la actividad registrada localmente. Entre las vistas que aparecen en la aplicación están las sesiones y minutos de estudio, los días seguidos, el uso por módulo, los estados y categorías de apuntes y los resultados de cuestionarios. Las estadísticas requieren actividad registrada; una pantalla vacía al comenzar no significa que se hayan perdido datos.
-
-### 4.9 Papelera y eliminación
-
-La aplicación incluye una «Papelera» y acciones para enviar elementos allí o eliminarlos permanentemente. Revisa el elemento antes de confirmar una acción irreversible. El apartado «Mis datos» también incluye la acción «Borrar todos mis datos»; úsala solo después de exportar una copia si deseas conservar tu información.
-
-## 5. Copias de seguridad y exportación
-
-Los datos están en este equipo y no se sincronizan automáticamente. KORA muestra un recordatorio de copia cuando hay al menos cinco elementos de contenido y han transcurrido siete días desde la última copia; también permite posponer el aviso.
-
-Para guardar un respaldo:
-
-1. Abre «Ajustes» y luego «Mis datos».
-2. Pulsa «Exportar copia (JSON)».
-3. Guarda el archivo en una ubicación segura, preferiblemente distinta de la carpeta de KORA.
-
-Para importar:
-
-1. Abre «Ajustes» > «Mis datos» y pulsa «Importar copia (JSON)».
-2. Selecciona un archivo JSON exportado por KORA.
-3. Revisa el resumen de cambios y confirma con «Importar».
-
-La importación fusiona los datos: no borra los registros actuales y solo reemplaza un registro cuando el de la copia es más reciente. Un archivo JSON inválido, demasiado grande o de una versión futura puede rechazarse. «Exportar Markdown» genera una versión legible del contenido compatible con esa exportación; no sustituye la copia JSON completa.
-
-## 6. Atajos de teclado
-
-| Tecla | Acción |
+| Sección | Para qué sirve |
 |---|---|
-| `/` | Abrir búsqueda, salvo que el foco esté en un campo editable o haya modificadores activos. |
-| `n` | Crear un apunte en el cuaderno disponible. Si no hay ninguno, KORA solicita crear uno primero. |
-| `?` | Abrir la ayuda de la aplicación. |
-| `1` / `2` | Indicar la valoración de una tarjeta durante un repaso: no la sabía / la sabía. |
+| **Resumen** | Ver cuadernos, apuntes y sus estados de estudio. |
+| **Buscador** | Encontrar apuntes, código, errores, tarjetas y cuestionarios. |
+| **Cuadernos** | Crear espacios de organización y abrir sus apuntes. |
+| **Código** | Guardar, editar y buscar fragmentos de programación. |
+| **Errores y soluciones** | Registrar problemas y consultar cómo se resolvieron. |
+| **Estudiar y repasar** | Repasar tarjetas, material relacionado y cuestionarios. |
+| **Papelera** | Restaurar elementos eliminados o confirmarlos como definitivos. |
+| **Progreso** | Consultar la distribución de estados de apuntes y apuntes por cuaderno. |
+| **Accesibilidad** | Elegir tema, tamaño del texto y otros ajustes visuales. |
+| **Mis datos** | Exportar o importar una copia JSON. |
 
-## 7. Validaciones, mensajes y errores frecuentes
+En pantallas estrechas, pulsa **Abrir menú** (☰) para mostrar la navegación. El campo superior permite iniciar una búsqueda general desde cualquier sección.
 
-| Situación | Qué hacer |
+## 5. Cuadernos y apuntes
+
+### Crear y organizar un cuaderno
+
+1. Abre **Cuadernos** y pulsa **Nuevo cuaderno** (o **Crear cuaderno** desde el resumen).
+2. Escribe un nombre de hasta 80 caracteres.
+3. Elige un color identificador: violeta, menta, coral, azul, ámbar, rosa, lila o turquesa.
+4. Pulsa **Crear cuaderno**.
+5. Abre el cuaderno desde su tarjeta. Puedes editar su nombre o color más adelante.
+
+El buscador de esta sección filtra cuadernos por nombre.
+
+### Crear o editar un apunte
+
+1. Abre un cuaderno y pulsa **Nuevo apunte**.
+2. Escribe un título y selecciona el cuaderno al que pertenece.
+3. Añade el contenido, un estado y etiquetas separadas por comas.
+4. Pulsa **Guardar apunte**.
+
+Los estados disponibles son **Nuevo**, **En repaso** y **Dominado**. El contenido se conserva como texto; aunque el campo se llama `bodyMd`, esta versión no presenta una vista previa Markdown. Las etiquetas se recortan a un máximo de 12.
+
+En el detalle del cuaderno puedes buscar por título, contenido o etiquetas. Desde una tarjeta de apunte puedes editarlo, crear una tarjeta de estudio basada en él o enviarlo a la papelera.
+
+## 6. Buscador general
+
+1. Escribe una o más palabras en **Buscar en KORA** o abre **Buscador**.
+2. Mientras escribes, KORA muestra sugerencias disponibles.
+3. Pulsa un resultado para abrir el contenido o **Ver todos los resultados** para consultar la página de búsqueda.
+
+La búsqueda abarca apuntes, fragmentos de código, errores, tarjetas y cuestionarios, incluidos sus textos, explicaciones, categorías, temas o etiquetas según el tipo. Los resultados se agrupan por tipo y las coincidencias se resaltan. La búsqueda general no consulta elementos que ya estén en la papelera.
+
+Si no aparece un resultado, prueba con menos palabras o revisa que el elemento esté guardado.
+
+## 7. Código
+
+KORA almacena fragmentos como texto de estudio; **no los ejecuta**.
+
+### Crear un fragmento
+
+1. Abre **Código** y pulsa **Nuevo fragmento**.
+2. Escribe un título y selecciona un lenguaje.
+3. Si lo deseas, agrega descripción, categoría, tema, etiquetas, explicación y notas.
+4. Escribe o pega el código y pulsa **Guardar fragmento**.
+
+Los lenguajes disponibles son JavaScript, TypeScript, Python, HTML, CSS, SQL, Java, C#, PHP, Bash, JSON y Texto.
+
+### Usar el editor
+
+- El resaltado y la numeración se actualizan mientras escribes.
+- **Tab** inserta dos espacios; **Mayús+Tab** quita dos espacios al inicio de la línea actual cuando están presentes.
+- **Enter** conserva la indentación de la línea y añade dos espacios después de `{`, `[` o `(`.
+- **Deshacer** y **Rehacer** controlan los cambios recientes.
+- Escribe en **Buscar en código** y pulsa **Buscar** para seleccionar la siguiente coincidencia; la búsqueda vuelve al comienzo al llegar al final.
+- **Copiar** usa el portapapeles. Si el navegador no lo permite, selecciona el texto y cópialo manualmente.
+- **Exportar** descarga el fragmento como archivo de texto con la extensión correspondiente al lenguaje.
+- Al guardar cambios en el código se conserva la versión previa. Para recuperarla, selecciónala en **Versiones anteriores** y guarda el borrador.
+
+La biblioteca permite filtrar por título, lenguaje, descripción, código, explicación, categoría, tema y etiquetas. Desde un fragmento puedes abrir el editor, registrar un error relacionado o moverlo a la papelera.
+
+## 8. Errores y soluciones
+
+1. Abre **Errores y soluciones** y pulsa **Registrar error**; también puedes iniciar el registro desde un fragmento de código.
+2. Añade un título y completa los campos que te ayuden a reproducir el problema: descripción, mensaje, lenguaje, código problemático, solución, código corregido, categoría, tema y etiquetas.
+3. Mantén el estado **Pendiente** mientras el problema no esté resuelto; usa **Solucionado** cuando corresponda.
+4. Guarda el registro. En la lista puedes buscar por texto y filtrar por todos, pendientes o solucionados.
+
+Un error creado desde el editor copia el código y el lenguaje del fragmento de origen. El título y el estado son obligatorios; el resto de la información debe ser suficiente para entender el caso cuando vuelvas a consultarlo.
+
+## 9. Estudiar y repasar
+
+### Tarjetas
+
+1. Abre **Estudiar y repasar** y pulsa **Nueva tarjeta**, o crea una tarjeta desde un apunte.
+2. Completa el frente (pregunta o concepto), el reverso (respuesta o explicación) y, opcionalmente, el tema.
+3. Guarda la tarjeta.
+4. Pulsa la tarjeta para voltearla y consultar la respuesta.
+5. Marca **Lo conozco** o **Necesito repasar** para registrar tu valoración.
+
+Puedes editar o eliminar cada tarjeta y activar **Orden aleatorio**. Las valoraciones se guardan en la tarjeta como su estado de estudio.
+
+### Cuestionarios
+
+1. En la sección de cuestionarios, pulsa **Crear cuestionario**.
+2. Escribe un título y, si quieres, un tema.
+3. Añade una o más preguntas. Cada pregunta puede ser de **Selección múltiple** o **Verdadero o falso**.
+4. Escribe el enunciado, las opciones, marca la respuesta correcta y añade una explicación si es útil.
+5. Guarda el cuestionario, pulsa **Empezar / repetir**, responde y selecciona **Finalizar y guardar resultado**.
+
+Las preguntas de verdadero/falso usan exactamente las opciones **Verdadero** y **Falso**. En selección múltiple se requieren al menos dos opciones y una respuesta correcta. Al finalizar se muestra la puntuación, se indica qué respuestas fueron correctas y se guarda el intento. Puedes repetir el cuestionario y consultar intentos recientes.
+
+### Repaso por tema
+
+Usa **Tema de repaso** para filtrar apuntes, tarjetas, cuestionarios y explicaciones de código relacionados. Los temas se obtienen de nombres de cuadernos, categorías, etiquetas y temas guardados; no existe un catálogo separado que haya que configurar.
+
+## 10. Papelera
+
+Los apuntes, fragmentos de código y errores enviados a la papelera pueden restaurarse. Al borrar un cuaderno, KORA conserva el cuaderno y sus apuntes juntos en una entrada.
+
+1. Abre **Papelera** y revisa el tipo, nombre y fecha del elemento.
+2. Pulsa **Restaurar** para recuperarlo.
+3. Para eliminar un elemento definitivamente, pulsa **Eliminar definitivamente** y confirma.
+4. **Vaciar papelera** abre una confirmación antes de eliminar todos los elementos.
+
+Al restaurar un apunte, primero debe existir su cuaderno. Si falta, restaura el cuaderno correspondiente antes de recuperar el apunte.
+
+## 11. Progreso y accesibilidad
+
+**Progreso** muestra un gráfico de dona con los apuntes nuevos, en repaso y dominados, y un gráfico de apuntes por cuaderno. Los gráficos se basan en los apuntes guardados; no miden horas de estudio ni actividad fuera de KORA.
+
+En **Accesibilidad** puedes elegir entre 13 temas (Original, Oscuro, Claro, Lavanda, Oceánico, Naturaleza, Atardecer, Pastel, Monocromático, Aurora, Nebulosa, Sol ácido y Calmo), activar modo calmo o alto contraste, aplicar filtros de color y ajustar lectura:
+
+- seis niveles de tamaño del texto, con **A−**, **A+** y **Restablecer**;
+- subrayado de enlaces, espacio entre textos y tipografía legible;
+- resaltado del foco del teclado.
+
+Las preferencias se guardan en el navegador para el usuario activo y se mantienen al recargar la aplicación. Los filtros de color son aproximados y no sustituyen una evaluación clínica.
+
+## 12. Copias de seguridad
+
+1. Abre **Mis datos** y pulsa **Exportar copia** para descargar `kora-copia-AAAA-MM-DD.json`.
+2. Guarda el archivo en una ubicación segura distinta de la carpeta de instalación.
+3. Para importar, selecciona **Importar copia** y elige una copia KORA válida.
+4. Lee la confirmación: importar **reemplaza** los cuadernos, apuntes y demás datos actuales de esa cuenta.
+
+La aplicación de escritorio guarda sus datos localmente; no compartas la copia si contiene información privada. El importador admite archivos de hasta 5 MB.
+
+## 13. Mensajes y soluciones frecuentes
+
+| Mensaje o problema | Qué hacer |
 |---|---|
-| «Primero crea un cuaderno para guardar apuntes» | Crea y abre un cuaderno antes de usar `n` o crear un apunte. |
-| No se pudo guardar en este equipo | No cierres la aplicación de inmediato. Comprueba el espacio disponible, cierra otras ventanas de KORA y vuelve a intentar. Si persiste, exporta una copia cuando sea posible; los últimos cambios podrían no haberse guardado. |
-| La copia no parece válida, es demasiado grande o no se reconoce | Selecciona un JSON exportado por KORA y comprueba que el archivo no esté dañado. |
-| La imagen supera el límite | Reduce el tamaño a 512 KB o menos y vuelve a insertarla. |
-| No se puede copiar código | Selecciona el código manualmente y usa `Ctrl+C`. |
-| La aplicación no abre o faltan recursos | Extrae la distribución completa; no ejecutes `kora.exe` desde dentro de un ZIP ni copies el ejecutable por separado. |
-| SmartScreen muestra una advertencia | Verifica que el paquete provenga de una fuente de confianza. La copia indica que no tiene firma digital. |
+| Usuario o contraseña incorrectos | Comprueba que el usuario sea `sarharf` y vuelve a escribir la contraseña configurada. No hay contraseña predeterminada. |
+| Demasiados intentos | Espera unos minutos antes de volver a intentarlo. |
+| No se pudo conectar con el servidor | En la versión de escritorio, cierra y vuelve a abrir KORA. En navegador, pide al operador que revise el servidor y la URL indicada en la consola. |
+| No se pudieron guardar los cambios | Revisa que el almacenamiento tenga espacio y que la carpeta de datos permita escritura. No cierres la aplicación hasta confirmar si los datos se guardaron. |
+| La copia no se importa | Utiliza un JSON exportado por esta versión, verifica que no supere 5 MB y confirma que aceptas reemplazar los datos actuales. |
+| No se ve el editor completo en un teléfono | Desplázate dentro del formulario; la barra lateral se abre con ☰ y el editor permite desplazamiento vertical y horizontal. |
+| No se puede copiar | Selecciona el código en el editor y usa la combinación de copiar del sistema. |
 
-## 8. Recomendaciones
+## 14. Funciones no incluidas en esta versión
 
-- Exporta respaldos JSON con regularidad y antes de actualizar la aplicación.
-- Conserva las copias fuera de la carpeta del programa; evita compartirlas si contienen información personal.
-- No elimines manualmente los datos de la aplicación desde el perfil de Windows.
-- Usa nombres y categorías consistentes para facilitar la búsqueda.
-- Comprueba el resultado en «Vista previa» antes de guardar contenido Markdown complejo.
-- Mantén la carpeta distribuida completa y no sustituyas archivos individuales del paquete.
+No hay ejecución de código, Glosario independiente, colaboración entre cuentas, roles, recuperación de contraseña, sincronización entre dispositivos ni migración automática desde la IndexedDB de la distribución KORA compilada anterior.
