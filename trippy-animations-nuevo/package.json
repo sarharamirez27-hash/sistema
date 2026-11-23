@@ -1,0 +1,16 @@
+{
+  "name": "trippy-animations-nuevo",
+  "productName": "KORA Trippy Animations",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "main.cjs",
+  "engines": {
+    "node": ">=22.11"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.mjs",
+    "test": "node --test",
+    "build:portable": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\build-portable.ps1"
+  }
+}
