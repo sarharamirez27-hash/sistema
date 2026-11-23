@@ -94,6 +94,12 @@ trippy-animations-nuevo/
 
 El resaltado de sintaxis es un tokenizer local basado en expresiones regulares, no un parser completo ni un servicio de lenguaje. En el editor de código, `textarea.code-input` se superpone a `pre.code-highlight`; el texto transparente permite que se vea el resaltado subyacente, mientras el caret y la selección siguen disponibles.
 
+### Vista previa de apuntes
+
+Las tarjetas de apuntes del resumen y del cuaderno usan `noteCard()` para presentar el título, la vista previa y los metadatos. `notePreview()` limita la entrada a 480 caracteres y agrega una elipsis cuando hay más contenido; CSS limita la altura visible para conservar tarjetas compactas. `safeMarkdown()` escapa primero el contenido con `escapeHtml()` y luego representa un subconjunto controlado de Markdown: encabezados de nivel 1 a 3, párrafos, negrita, cursiva, código en línea o cercado, citas y listas ordenadas o sin ordenar. No procesa HTML proporcionado por la persona usuaria ni ofrece una vista en vivo mientras se edita.
+
+El botón del título tiene un estilo propio en `.note-title-button` para evitar el fondo y borde nativos del navegador; su subrayado usa el color del cuaderno. Los estilos de la vista previa están agrupados bajo `.note-preview` y `.note-preview-content` en `public\styles.css`.
+
 ## 6. API y flujo de solicitudes
 
 La función `api()` del frontend envía solicitudes same-origin e interpreta errores JSON. Las rutas implementadas son:

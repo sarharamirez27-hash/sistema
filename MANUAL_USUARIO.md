@@ -72,7 +72,9 @@ El buscador de esta sección filtra cuadernos por nombre.
 3. Añade el contenido, un estado y etiquetas separadas por comas.
 4. Pulsa **Guardar apunte**.
 
-Los estados disponibles son **Nuevo**, **En repaso** y **Dominado**. El contenido se conserva como texto; aunque el campo se llama `bodyMd`, esta versión no presenta una vista previa Markdown. Las etiquetas se recortan a un máximo de 12.
+Los estados disponibles son **Nuevo**, **En repaso** y **Dominado**. El contenido admite Markdown básico. Después de guardar, las tarjetas del resumen y del cuaderno muestran una vista previa con títulos, párrafos, texto en **negrita** o *cursiva*, listas, citas y fragmentos de código. La vista previa se limita para mantener las tarjetas legibles; no es una vista en vivo dentro del formulario de edición. El título del apunte usa un acento de color asociado al cuaderno. Las etiquetas se recortan a un máximo de 12.
+
+Para editar un apunte, pulsa su título o el botón **Editar**. El contenido se guarda como texto; el formato se aplica al mostrar la vista previa.
 
 En el detalle del cuaderno puedes buscar por título, contenido o etiquetas. Desde una tarjeta de apunte puedes editarlo, crear una tarjeta de estudio basada en él o enviarlo a la papelera.
 
